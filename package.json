@@ -1,0 +1,26 @@
+{
+  "name": "bitcoin-guess-predictor-lambda",
+  "version": "1.0.0",
+  "description": "Backend Lambda functions for Bitcoin price prediction game",
+  "main": "index.js",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "test": "jest",
+    "deploy": "serverless deploy",
+    "local": "serverless offline"
+  },
+  "dependencies": {
+    "uuid": "^9.0.1",
+    "aws-sdk": "^2.1490.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "serverless": "^3.38.0",
+    "serverless-offline": "^13.3.0"
+  },
+  "keywords": ["bitcoin", "prediction", "lambda", "aws"],
+  "author": "Pramod Choyal",
+  "license": "MIT"
+}

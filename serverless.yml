@@ -1,0 +1,124 @@
+service: bitcoin-guess-predictor
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: eu-central-1
+  stage: ${opt:stage, 'prod'}
+  environment:
+    PLAYERS_TABLE: ${self:service}-players-${self:provider.stage}
+    GUESSES_TABLE: ${self:service}-guesses-${self:provider.stage}
+    STAGE: ${self:provider.stage}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.PLAYERS_TABLE}"
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.GUESSES_TABLE}"
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.GUESSES_TABLE}/index/*"
+        - Effect: Allow
+          Action:
+            - events:PutEvents
+          Resource:
+            - "arn:aws:events:${self:provider.region}:*:event-bus/default"
+
+functions:
+  createPlayer:
+    handler: src/handlers/createPlayer.handler
+    events:
+      - http:
+          path: players
+          method: post
+          cors: true
+
+  getPlayerState:
+    handler: src/handlers/getPlayerState.handler
+    events:
+      - http:
+          path: api/player/{userId}
+          method: get
+          cors: true
+
+  makeGuess:
+    handler: src/handlers/makeGuess.handler
+    events:
+      - http:
+          path: api/guess
+          method: post
+          cors: true
+
+  resolveGuess:
+    handler: src/handlers/resolveGuess.handler
+    events:
+      - http:
+          path: api/resolve
+          method: post
+          cors: true
+      - eventBridge:
+          pattern:
+            source:
+              - bitcoin-guess-predictor
+            detail-type:
+              - Resolve Guess
+
+resources:
+  Resources:
+    PlayersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.PLAYERS_TABLE}
+        AttributeDefinitions:
+          - AttributeName: playerId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: playerId
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+
+    GuessesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.GUESSES_TABLE}
+        AttributeDefinitions:
+          - AttributeName: guessId
+            AttributeType: S
+          - AttributeName: playerId
+            AttributeType: S
+          - AttributeName: status
+            AttributeType: S
+          - AttributeName: createdAt
+            AttributeType: S
+        KeySchema:
+          - AttributeName: guessId
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: PlayerGuessesIndex
+            KeySchema:
+              - AttributeName: playerId
+                KeyType: HASH
+              - AttributeName: status
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+          - IndexName: PlayerTimeIndex
+            KeySchema:
+              - AttributeName: playerId
+                KeyType: HASH
+              - AttributeName: createdAt
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
+
+plugins:
+  - serverless-offline
