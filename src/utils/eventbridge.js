@@ -1,7 +1,12 @@
 const AWS = require('aws-sdk');
-const { APP_CONFIG, EVENTBRIDGE_CONFIG, ENV } = require('../config/constants');
+const { APP_CONFIG, ENV } = require('../config/constants');
 
-// Configure EventBridge
+// Configure EventBridge Scheduler for scheduled events (AWS SDK v2 service is named 'Scheduler')
+const scheduler = new AWS.Scheduler({
+  region: ENV.AWS_REGION
+});
+
+// Configure EventBridge (for immediate events)
 const eventbridge = new AWS.EventBridge({
   region: ENV.AWS_REGION
 });
@@ -14,37 +19,59 @@ const eventbridge = new AWS.EventBridge({
  * @returns {Promise<Object>} - EventBridge response
  */
 const scheduleGuessResolution = async (guessId, playerId, currentPrice) => {
-  // Calculate the time from configuration
-  const resolveTime = new Date(Date.now() + APP_CONFIG.GUESS_RESOLUTION_DELAY);
+  // Schedule name must be unique - use guessId
+  const scheduleName = `resolve-guess-${guessId}`;
+
+  // Time 60 seconds from now in seconds precision, no timezone suffix (Scheduler expects no 'Z')
+  const runAt = new Date(Date.now() + APP_CONFIG.GUESS_RESOLUTION_DELAY)
+    .toISOString()
+    .slice(0, 19); // e.g., 2025-09-22T12:44:43
+
+  const accountId = await getAccountId();
+  const functionName = `${APP_CONFIG.SERVICE_NAME}-${ENV.STAGE}-resolveGuess`;
+  const lambdaArn = `arn:aws:lambda:${ENV.AWS_REGION}:${accountId}:function:${functionName}`;
+  const roleName = `${APP_CONFIG.SERVICE_NAME}-${ENV.STAGE}-scheduler-role`;
+  const roleArn = `arn:aws:iam::${accountId}:role/${roleName}`;
 
   const params = {
-    Entries: [
-      {
-        Source: EVENTBRIDGE_CONFIG.SOURCE,
-        DetailType: EVENTBRIDGE_CONFIG.DETAIL_TYPES.RESOLVE_GUESS,
-        Detail: JSON.stringify({
-          guessId,
-          playerId,
-          currentPrice,
-          scheduledAt: new Date().toISOString()
-        }),
-        Time: resolveTime
-      }
-    ]
+    Name: scheduleName,
+    GroupName: 'default',
+    FlexibleTimeWindow: { Mode: 'OFF' }, // Run exactly once
+    ScheduleExpression: `at(${runAt})`,
+    ScheduleExpressionTimezone: 'UTC',
+    Target: {
+      Arn: lambdaArn,
+      RoleArn: roleArn,
+      Input: JSON.stringify({
+        guessId,
+        userId: playerId,
+        currentPrice,
+        scheduledAt: new Date().toISOString(),
+        source: 'eventbridge-scheduler'
+      })
+    }
   };
 
   try {
-    const result = await eventbridge.putEvents(params).promise();
-    console.log('Guess resolution scheduled:', {
+    const result = await scheduler.createSchedule(params).promise();
+    console.log('Guess resolution scheduled via EventBridge Scheduler:', {
       guessId,
-      resolveTime: resolveTime.toISOString(),
-      eventResult: result
+      scheduleName,
+      runAt,
+      result
     });
     return result;
   } catch (error) {
-    console.error('Error scheduling guess resolution:', error);
+    console.error('Error scheduling guess resolution via EventBridge Scheduler:', error);
     throw error;
   }
+};
+
+// Helper function to get AWS account ID
+const getAccountId = async () => {
+  const sts = new AWS.STS({ region: ENV.AWS_REGION });
+  const identity = await sts.getCallerIdentity().promise();
+  return identity.Account;
 };
 
 /**

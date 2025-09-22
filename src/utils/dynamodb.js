@@ -218,15 +218,41 @@ const updateGuessResolution = async (guessId, status, resolvePrice) => {
  * @returns {Promise<Object>} - Updated player object
  */
 const updatePlayerScore = async (playerId, scoreChange) => {
+  const now = new Date().toISOString();
+
+  // Increment path (never capped)
+  if (scoreChange >= 0) {
+    const params = {
+      TableName: TABLE_NAMES.PLAYERS,
+      Key: { playerId },
+      UpdateExpression: 'SET score = if_not_exists(score, :zero) + :scoreChange, lastActive = :timestamp',
+      ExpressionAttributeValues: {
+        ':scoreChange': scoreChange,
+        ':zero': 0,
+        ':timestamp': now
+      },
+      ReturnValues: 'ALL_NEW'
+    };
+
+    try {
+      const result = await dynamodb.update(params).promise();
+      return result.Attributes;
+    } catch (error) {
+      console.error('Error updating player score (increment):', error);
+      throw error;
+    }
+  }
+
+  // Decrement path (floor at 0)
   const params = {
     TableName: TABLE_NAMES.PLAYERS,
-    Key: {
-      playerId: playerId
-    },
-    UpdateExpression: 'SET score = score + :scoreChange, lastActive = :timestamp',
+    Key: { playerId },
+    UpdateExpression: 'SET score = if_not_exists(score, :zero) - :one, lastActive = :timestamp',
+    ConditionExpression: 'attribute_exists(score) AND score >= :one',
     ExpressionAttributeValues: {
-      ':scoreChange': scoreChange,
-      ':timestamp': new Date().toISOString()
+      ':one': 1,
+      ':zero': 0,
+      ':timestamp': now
     },
     ReturnValues: 'ALL_NEW'
   };
@@ -235,7 +261,27 @@ const updatePlayerScore = async (playerId, scoreChange) => {
     const result = await dynamodb.update(params).promise();
     return result.Attributes;
   } catch (error) {
-    console.error('Error updating player score:', error);
+    if (error.code === 'ConditionalCheckFailedException') {
+      // Score is 0 or missing -> keep at 0, but still update lastActive and ensure score is set to 0
+      try {
+        const fallback = await dynamodb.update({
+          TableName: TABLE_NAMES.PLAYERS,
+          Key: { playerId },
+          UpdateExpression: 'SET lastActive = :timestamp, score = if_not_exists(score, :zero)',
+          ExpressionAttributeValues: {
+            ':timestamp': now,
+            ':zero': 0
+          },
+          ReturnValues: 'ALL_NEW'
+        }).promise();
+        return fallback.Attributes;
+      } catch (fallbackErr) {
+        console.error('Fallback update (no decrement) failed:', fallbackErr);
+        throw fallbackErr;
+      }
+    }
+
+    console.error('Error updating player score (decrement):', error);
     throw error;
   }
 };
