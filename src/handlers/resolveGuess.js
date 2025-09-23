@@ -32,7 +32,7 @@ exports.handler = async (event) => {
       // EventBridge event
       console.log('Processing EventBridge event');
       guessId = event.detail.guessId;
-      userId = event.detail.playerId;
+      userId = event.detail.userId;
     } else if (event.guessId && event.userId && event.source === 'eventbridge-scheduler') {
       // EventBridge Scheduler event (direct Lambda invocation)
       console.log('Processing EventBridge Scheduler event');

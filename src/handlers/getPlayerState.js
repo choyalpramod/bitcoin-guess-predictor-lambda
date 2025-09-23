@@ -2,6 +2,7 @@ const { getPlayerById, getLatestGuessForPlayer, updatePlayerLastActive } = requi
 const { successResponse, errorResponse } = require('../utils/response');
 const { isValidUUID } = require('../utils/validation');
 const { getCachedBitcoinPrice } = require('../utils/bitcoin');
+const { formatGuessForResponse } = require('../utils/guess');
 
 /**
  * Lambda handler for getting player state including score, latest guess, and current BTC price
@@ -48,9 +49,9 @@ exports.handler = async (event) => {
       currentPrice: bitcoinPriceData.price
     };
 
-    // Add latest guess information if it exists
-    if (latestGuess) {
-      responseData.latestGuess = formatGuessForResponse(latestGuess);
+    const firstGuess = latestGuess && latestGuess.length > 0 && latestGuess[0];
+    if (firstGuess) {
+      responseData.latestGuess = formatGuessForResponse(firstGuess);
     } else {
       responseData.latestGuess = null;
     }
@@ -71,27 +72,4 @@ exports.handler = async (event) => {
     // Generic server error
     return errorResponse('Internal server error', 500, 'INTERNAL_ERROR');
   }
-};
-
-/**
- * Format guess object for API response
- * @param {Object} guess - Raw guess object from DynamoDB
- * @returns {Object} - Formatted guess object for response
- */
-const formatGuessForResponse = (guess) => {
-  const isResolved = guess.status !== 'ACTIVE';
-  
-  const formattedGuess = {
-    guessId: guess.guessId,
-    direction: guess.direction,
-    timestamp: new Date(guess.createdAt).getTime(),
-    resolved: isResolved
-  };
-
-  // Add result if the guess is resolved
-  if (isResolved) {
-    formattedGuess.result = guess.status === 'WON' ? 'win' : 'loss';
-  }
-
-  return formattedGuess;
 };

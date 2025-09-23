@@ -110,5 +110,3 @@ exports.handler = async (event) => {
     return errorResponse('Internal server error', 500, 'INTERNAL_ERROR');
   }
 };
-
-

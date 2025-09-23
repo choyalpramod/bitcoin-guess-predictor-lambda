@@ -7,7 +7,7 @@
 const APP_CONFIG = {
   SERVICE_NAME: 'bitcoin-guess-predictor',
   DEFAULT_REGION: 'eu-central-1',
-  CACHE_TTL: 30000, // 30 seconds
+  CACHE_TTL: 200000, // 20 seconds
   REQUEST_TIMEOUT: 5000, // 5 seconds
   GUESS_RESOLUTION_DELAY: 60000, // 60 seconds (1 minute)
 };

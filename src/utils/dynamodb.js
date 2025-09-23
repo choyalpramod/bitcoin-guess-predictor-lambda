@@ -154,9 +154,10 @@ const getGuessById = async (guessId) => {
 /**
  * Get the latest guess for a player (most recent by creation time)
  * @param {string} playerId - The player's unique ID
+ * @param maxResults - Maximum number of results to return
  * @returns {Promise<Object|null>} - Latest guess object or null if not found
  */
-const getLatestGuessForPlayer = async (playerId) => {
+const getLatestGuessForPlayer = async (playerId, maxResults = 1) => {
   const params = {
     TableName: TABLE_NAMES.GUESSES,
     IndexName: INDEX_NAMES.PLAYER_TIME,
@@ -165,12 +166,12 @@ const getLatestGuessForPlayer = async (playerId) => {
       ':playerId': playerId
     },
     ScanIndexForward: false, // Sort in descending order (latest first)
-    Limit: 1
+    Limit: maxResults
   };
 
   try {
     const result = await dynamodb.query(params).promise();
-    return result.Items && result.Items.length > 0 ? result.Items[0] : null;
+    return result.Items || [];
   } catch (error) {
     console.error('Error getting latest guess for player:', error);
     throw error;

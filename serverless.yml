@@ -55,7 +55,7 @@ functions:
     handler: src/handlers/createPlayer.handler
     events:
       - http:
-          path: players
+          path: api/player
           method: post
           cors: true
 
@@ -64,6 +64,14 @@ functions:
     events:
       - http:
           path: api/player/{userId}
+          method: get
+          cors: true
+
+  getPlayerGuesses:
+    handler: src/handlers/getPlayerGuesses.handler
+    events:
+      - http:
+          path: api/guesses/{userId}
           method: get
           cors: true
 

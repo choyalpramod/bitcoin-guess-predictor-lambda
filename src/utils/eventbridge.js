@@ -14,11 +14,11 @@ const eventbridge = new AWS.EventBridge({
 /**
  * Schedule a guess resolution event to be triggered after 60 seconds
  * @param {string} guessId - The guess ID to resolve
- * @param {string} playerId - The player ID who made the guess
+ * @param {string} userId - The user ID who made the guess
  * @param {number} currentPrice - The Bitcoin price when the guess was made
  * @returns {Promise<Object>} - EventBridge response
  */
-const scheduleGuessResolution = async (guessId, playerId, currentPrice) => {
+const scheduleGuessResolution = async (guessId, userId, currentPrice) => {
   // Schedule name must be unique - use guessId
   const scheduleName = `resolve-guess-${guessId}`;
 
@@ -44,7 +44,7 @@ const scheduleGuessResolution = async (guessId, playerId, currentPrice) => {
       RoleArn: roleArn,
       Input: JSON.stringify({
         guessId,
-        userId: playerId,
+        userId: userId,
         currentPrice,
         scheduledAt: new Date().toISOString(),
         source: 'eventbridge-scheduler'
