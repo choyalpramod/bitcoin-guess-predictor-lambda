@@ -25,6 +25,7 @@ This backend provides APIs for a web application where users can guess whether B
 #### Game Logic
 - **POST /api/guess** - Make a new guess (up/down prediction)
 - **POST /api/resolve** - Resolve a guess (triggered by EventBridge or manual)
+- **GET /api/guesses/{userId}** - Get latest guesses for a player
 
 ### API Endpoints
 
@@ -143,6 +144,29 @@ Content-Type: application/json
 }
 ```
 
+#### Get Player Guesses
+```http
+GET /api/guesses/{userId}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "latestGuess": [
+        {
+          "guessId": "abc123",
+          "direction": "up",
+          "timestamp": 1690000000000,
+          "resolved": true,
+          "result": "win"
+        }
+    ]
+  }
+}
+```
+
 **Note**: This endpoint is primarily triggered automatically by EventBridge after 60 seconds, but can also be called manually for testing.
 
 ## Project Structure
@@ -153,12 +177,14 @@ Content-Type: application/json
 │   │   ├── createPlayer.js
 │   │   ├── getPlayerState.js
 │   │   ├── makeGuess.js
+│   │   ├── getPlayerGuesses.js
 │   │   └── resolveGuess.js
 │   └── utils/              # Shared utilities
 │       ├── bitcoin.js      # Bitcoin price fetching
 │       ├── dynamodb.js     # DynamoDB operations
 │       ├── eventbridge.js  # EventBridge scheduling
 │       ├── response.js     # HTTP response helpers
+│       ├── guess.js        # helpers for formatting guess data
 │       └── validation.js   # Input validation
 ├── tests/                  # Test files (to be added)
 ├── package.json
