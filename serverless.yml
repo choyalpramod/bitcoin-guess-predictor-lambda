@@ -57,7 +57,16 @@ functions:
       - http:
           path: api/player
           method: post
-          cors: true
+          cors:
+            origin: 'https://bitcoin-guess-predictor-frontend.vercel.app'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: true
 
   getPlayerState:
     handler: src/handlers/getPlayerState.handler
@@ -65,7 +74,16 @@ functions:
       - http:
           path: api/player/{userId}
           method: get
-          cors: true
+          cors:
+            origin: 'https://bitcoin-guess-predictor-frontend.vercel.app'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: true
 
   getPlayerGuesses:
     handler: src/handlers/getPlayerGuesses.handler
@@ -73,7 +91,16 @@ functions:
       - http:
           path: api/guesses/{userId}
           method: get
-          cors: true
+          cors:
+            origin: 'https://bitcoin-guess-predictor-frontend.vercel.app'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: true
 
   makeGuess:
     handler: src/handlers/makeGuess.handler
@@ -81,7 +108,16 @@ functions:
       - http:
           path: api/guess
           method: post
-          cors: true
+          cors:
+            origin: 'https://bitcoin-guess-predictor-frontend.vercel.app'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: true
 
   resolveGuess:
     handler: src/handlers/resolveGuess.handler
@@ -89,7 +125,16 @@ functions:
       - http:
           path: api/resolve
           method: post
-          cors: true
+          cors:
+            origin: 'https://bitcoin-guess-predictor-frontend.vercel.app'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: true
       - eventBridge:
           pattern:
             source:
